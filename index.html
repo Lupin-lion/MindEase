@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MindEase: Mental Health for Gen Z</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f0f4f8;
+      color: #333;
+    }
+    header {
+      background: #6b48ff;
+      color: white;
+      text-align: center;
+      padding: 1rem;
+    }
+    nav {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      background: #fff;
+      padding: 1rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    nav a {
+      text-decoration: none;
+      color: #6b48ff;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    nav a.active {
+      color: #ffeb3b;
+      background: #6b48ff;
+      padding: 0.5rem 1rem;
+      border-radius: 5px;
+    }
+    nav select {
+      padding: 0.5rem;
+      border-radius: 5px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 1rem auto;
+      padding: 0 1rem;
+    }
+    .section {
+      background: white;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      display: none;
+    }
+    .section.active {
+      display: block;
+    }
+    audio {
+      width: 100%;
+      margin-top: 1rem;
+    }
+    #chat-box {
+      height: 200px;
+      overflow-y: scroll;
+      border: 1px solid #ccc;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+    #mood-progress {
+      width: 100%;
+      height: 20px;
+      background: #e0e0e0;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    #mood-progress div {
+      height: 100%;
+      background: #6b48ff;
+      width: 0;
+      transition: width 0.3s;
+    }
+    button {
+      background: #6b48ff;
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    button:hover {
+      transform: scale(1.05);
+    }
+    #chatbot-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #ffeb3b;
+      color: #333;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      cursor: pointer;
+    }
+    #chatbot-box {
+      display: none;
+      position: fixed;
+      bottom: 80px;
+      right: 20px;
+      width: 250px;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 1rem;
+    }
+    @media (max-width: 600px) {
+      nav { flex-direction: column; align-items: center; }
+      .container { padding: 0 0.5rem; }
+      #chatbot-box { width: 80%; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>MindEase: Mental Health for Gen Z</h1>
+    <p>Free, offline support for youth in Kenya</p>
+  </header>
+  <nav>
+    <a data-section="home" class="active">Home</a>
+    <a data-section="therapy">Therapy</a>
+    <a data-section="chat">Chat</a>
+    <a data-section="mood">Mood</a>
+    <a data-section="resources">Resources</a>
+    <select id="language" onchange="changeLanguage()">
+      <option value="en">English</option>
+      <option value="sw">Swahili</option>
+    </select>
+  </nav>
+  <div class="container">
+    <div id="home" class="section active">
+      <h2 data-lang-key="welcome">Welcome to MindEase</h2>
+      <p data-lang-key="mission">Supporting Gen Z mental health in Kenya and beyond. Free, offline, and youth-friendly.</p>
+      <p><strong data-lang-key="impact">Impact Potential:</strong> Reach 10M+ youth by 2027 with localized features.</p>
+    </div>
+    <div id="therapy" class="section">
+      <h2 data-lang-key="therapy">Micro-Therapy</h2>
+      <p data-lang-key="therapy_desc">Listen to a 5-minute stress relief session.</p>
+      <audio controls src="https://raw.githubusercontent.com/yourusername/mental-health-app/main/stress-relief.mp3"></audio>
+    </div>
+    <div id="chat" class="section">
+      <h2 data-lang-key="chat">Anonymous Peer Chat</h2>
+      <div id="chat-box"></div>
+      <input type="text" id="chat-input" placeholder="Share your thoughts..." aria-label="Chat input">
+      <button onclick="sendMessage()">Send</button>
+    </div>
+    <div id="mood" class="section">
+      <h2 data-lang-key="mood">Mood Tracker</h2>
+      <p data-lang-key="mood_desc">How are you feeling today?</p>
+      <button onclick="logMood('😊')" aria-label="Happy">😊 Happy</button>
+      <button onclick="logMood('😢')" aria-label="Sad">😢 Sad</button>
+      <button onclick="logMood('😣')" aria-label="Stressed">😣 Stressed</button>
+      <div id="mood-progress"><div></div></div>
+      <p id="mood-count">Moods logged: 0</p>
+      <p id="streak">Streak: 0 days</p>
+      <canvas id="mood-chart" height="100"></canvas>
+    </div>
+    <div id="resources" class="section">
+      <h2 data-lang-key="resources">Local Resources</h2>
+      <ul>
+        <li>Befrienders Kenya: +254-722-178-177</li>
+        <li>Niskize Helpline: 0800-720-122 (Toll-free)</li>
+      </ul>
+    </div>
+  </div>
+  <div id="chatbot-btn" onclick="toggleChatbot()">🤖</div>
+  <div id="chatbot-box">
+    <h3 data-lang-key="chatbot">MindEase Bot</h3>
+    <div id="chatbot-messages"></div>
+    <input type="text" id="chatbot-input" placeholder="Ask for a tip..." aria-label="Chatbot input">
+    <button onclick="sendChatbotMessage()">Send</button>
+  </div>
+  <script>
+    // Translations
+    const translations = {
+      en: {
+        welcome: "Welcome to MindEase",
+        mission: "Supporting Gen Z mental health in Kenya and beyond. Free, offline, and youth-friendly.",
+        impact: "Impact Potential",
+        therapy: "Micro-Therapy",
+        therapy_desc: "Listen to a 5-minute stress relief session.",
+        chat: "Anonymous Peer Chat",
+        mood: "Mood Tracker",
+        mood_desc: "How are you feeling today?",
+        resources: "Local Resources",
+        chatbot: "MindEase Bot"
+      },
+      sw: {
+        welcome: "Karibu MindEase",
+        mission: "Inasaidia afya ya akili ya Gen Z nchini Kenya na zaidi. Bure, nje ya mtandao, na rafiki kwa vijana.",
+        impact: "Uwezo wa Athari",
+        therapy: "Tiba ya Dakika",
+        therapy_desc: "Sikiliza kipindi cha dakika 5 cha kupunguza msongo wa mawazo.",
+        chat: "Mazungumzo ya Wenzao Bila Jina",
+        mood: "Rekodi ya Hisia",
+        mood_desc: "Unajisikiaje leo?",
+        resources: "Rasilimali za Mitaa",
+        chatbot: "Boti ya MindEase"
+      }
+    };
+
+    // Language toggle
+    let currentLang = localStorage.getItem('language') || 'en';
+    function changeLanguage() {
+      currentLang = document.getElementById('language').value;
+      localStorage.setItem('language', currentLang);
+      document.querySelectorAll('[data-lang-key]').forEach(el => {
+        el.textContent = translations[currentLang][el.dataset.langKey];
+      });
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('language').value = currentLang;
+      changeLanguage();
+    });
+
+    // Navigation
+    function showSection(sectionId) {
+      document.querySelectorAll('.section').forEach(section => {
+        section.classList.remove('active');
+      });
+      document.querySelectorAll('nav a').forEach(link => {
+        link.classList.remove('active');
+      });
+      document.getElementById(sectionId).classList.add('active');
+      document.querySelector(`nav a[data-section="${sectionId}"]`).classList.add('active');
+    }
+    document.querySelectorAll('nav a').forEach(link => {
+      link.addEventListener('click', () => {
+        showSection(link.dataset.section);
+      });
+    });
+
+    // Chat functionality
+    const presetMessages = [
+      "I'm feeling stressed, any tips?",
+      "Try deep breathing! It helps me.",
+      "Thanks, I'll give it a try!"
+    ];
+    let messages = JSON.parse(localStorage.getItem('messages')) || presetMessages;
+    const chatBox = document.getElementById('chat-box');
+    function displayMessages() {
+      chatBox.innerHTML = messages.map(msg => `<p>${msg}</p>`).join('');
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+    function sendMessage() {
+      const input = document.getElementById('chat-input');
+      if (input && input.value.trim()) {
+        messages.push(input.value);
+        localStorage.setItem('messages', JSON.stringify(messages));
+        displayMessages();
+        input.value = '';
+      }
+    }
+    displayMessages();
+
+    // Mood tracker
+    let moodData = JSON.parse(localStorage.getItem('moodData')) || [];
+    let streak = parseInt(localStorage.getItem('streak')) || 0;
+    const progressBar = document.querySelector('#mood-progress div');
+    const moodCountDisplay = document.getElementById('mood-count');
+    const streakDisplay = document.getElementById('streak');
+    function logMood(mood) {
+      const today = new Date().toDateString();
+      moodData.push({ mood, date: today });
+      localStorage.setItem('moodData', JSON.stringify(moodData));
+      const lastMood = moodData[moodData.length - 2];
+      if (lastMood && new Date(lastMood.date).getDate() === new Date(today).getDate() - 1) {
+        streak++;
+      } else if (!lastMood || new Date(lastMood.date).getDate() !== new Date(today).getDate()) {
+        streak = 1;
+      }
+      localStorage.setItem('streak', streak);
+      moodCountDisplay.textContent = `Moods logged: ${moodData.length}`;
+      streakDisplay.textContent = `Streak: ${streak} day${streak === 1 ? '' : 's'}`;
+      progressBar.style.width = `${Math.min(moodData.length * 20, 100)}%`;
+      updateMoodChart();
+    }
+    moodCountDisplay.textContent = `Moods logged: ${moodData.length}`;
+    streakDisplay.textContent = `Streak: ${streak} day${streak === 1 ? '' : 's'}`;
+    progressBar.style.width = `${Math.min(moodData.length * 20, 100)}%`;
+
+    // Mood chart
+    const ctx = document.getElementById('mood-chart');
+    const moodChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['Happy', 'Sad', 'Stressed'],
+        datasets: [{
+          label: 'Mood Trends',
+          data: [0, 0, 0],
+          backgroundColor: ['#6b48ff', '#ff6b6b', '#ffca28']
+        }]
+      },
+      options: { scales: { y: { beginAtZero: true } } }
+    });
+    function updateMoodChart() {
+      const counts = { '😊': 0, '😢': 0, '😣': 0 };
+      moodData.forEach(m => counts[m.mood]++);
+      moodChart.data.datasets[0].data = [counts['😊'], counts['😢'], counts['😣']];
+      moodChart.update();
+    }
+    updateMoodChart();
+
+    // Chatbot
+    const chatbotResponses = {
+      stress: "Try a deep breathing exercise: inhale for 4 seconds, hold for 4, exhale for 4.",
+      sad: "I'm here for you! Try writing down one thing you're grateful for today.",
+      default: "Thanks for sharing! Try our micro-therapy session for a quick boost."
+    };
+    let chatbotMessages = JSON.parse(localStorage.getItem('chatbotMessages')) || [];
+    const chatbotBox = document.getElementById('chatbot-box');
+    const chatbotMessagesDiv = document.getElementById('chatbot-messages');
+    function displayChatbotMessages() {
+      chatbotMessagesDiv.innerHTML = chatbotMessages.map(msg => `<p><strong>You:</strong> ${msg.user}<br><strong>Bot:</strong> ${msg.bot}</p>`).join('');
+      chatbotMessagesDiv.scrollTop = chatbotMessagesDiv.scrollHeight;
+    }
+    function sendChatbotMessage() {
+      const input = document.getElementById('chatbot-input');
+      if (input && input.value.trim()) {
+        const userMsg = input.value.toLowerCase();
+        const botMsg = userMsg.includes('stress') ? chatbotResponses.stress :
+                       userMsg.includes('sad') ? chatbotResponses.sad : chatbotResponses.default;
+        chatbotMessages.push({ user: input.value, bot: botMsg });
+        localStorage.setItem('chatbotMessages', JSON.stringify(chatbotMessages));
+        displayChatbotMessages();
+        input.value = '';
+      }
+    }
+    function toggleChatbot() {
+      chatbotBox.style.display = chatbotBox.style.display === 'block' ? 'none' : 'block';
+    }
+    displayChatbotMessages();
+
+    // Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(err => console.log('Service Worker Error:', err));
+    }
+  </script>
+</body>
+</html>
