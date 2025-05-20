@@ -13,11 +13,18 @@
       background: #f0f4f8;
       color: #333;
     }
+    body.dark-mode {
+      background: #121212;
+      color: #e0e0e0;
+    }
     header {
       background: #6b48ff;
       color: white;
       text-align: center;
       padding: 1rem;
+    }
+    body.dark-mode header {
+      background: #333;
     }
     nav {
       display: flex;
@@ -27,17 +34,27 @@
       padding: 1rem;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
+    body.dark-mode nav {
+      background: #444;
+    }
     nav a {
       text-decoration: none;
       color: #6b48ff;
       font-weight: bold;
       cursor: pointer;
     }
+    body.dark-mode nav a {
+      color: #e0e0e0;
+    }
     nav a.active {
       color: #ffeb3b;
       background: #6b48ff;
       padding: 0.5rem 1rem;
       border-radius: 5px;
+    }
+    body.dark-mode nav a.active {
+      background: #6b48ff;
+      color: #ffeb3b;
     }
     nav select {
       padding: 0.5rem;
@@ -54,9 +71,14 @@
       border-radius: 8px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
       display: none;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
     }
     .section.active {
       display: block;
+      opacity: 1;
+      transform: translateY(0);
     }
     audio {
       width: 100%;
@@ -92,7 +114,8 @@
       transition: transform 0.2s;
     }
     button:hover {
-      transform: scale(1.05);
+      transform: scale(1.1);
+      background: #4caf50;
     }
     #chatbot-btn {
       position: fixed;
@@ -119,6 +142,17 @@
       border: 1px solid #ccc;
       border-radius: 8px;
       padding: 1rem;
+      animation: fadeIn 0.5s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
     @media (max-width: 600px) {
       nav { flex-direction: column; align-items: center; }
@@ -158,14 +192,14 @@
       <h2 data-lang-key="chat">Anonymous Peer Chat</h2>
       <div id="chat-box"></div>
       <input type="text" id="chat-input" placeholder="Share your thoughts..." aria-label="Chat input">
-      <button onclick="sendMessage()">Send</button>
+      <button onclick="sendMessage()" aria-label="Send chat message">Send</button>
     </div>
     <div id="mood" class="section">
       <h2 data-lang-key="mood">Mood Tracker</h2>
       <p data-lang-key="mood_desc">How are you feeling today?</p>
-      <button onclick="logMood('😊')" aria-label="Happy">😊 Happy</button>
-      <button onclick="logMood('😢')" aria-label="Sad">😢 Sad</button>
-      <button onclick="logMood('😣')" aria-label="Stressed">😣 Stressed</button>
+      <button onclick="logMood('😊')" aria-label="Log Happy mood">😊 Happy</button>
+      <button onclick="logMood('😢')" aria-label="Log Sad mood">😢 Sad</button>
+      <button onclick="logMood('😣')" aria-label="Log Stressed mood">😣 Stressed</button>
       <div id="mood-progress"><div></div></div>
       <p id="mood-count">Moods logged: 0</p>
       <p id="streak">Streak: 0 days</p>
@@ -186,6 +220,7 @@
     <input type="text" id="chatbot-input" placeholder="Ask for a tip..." aria-label="Chatbot input">
     <button onclick="sendChatbotMessage()">Send</button>
   </div>
+  <button id="dark-mode-toggle" onclick="toggleDarkMode()">🌙</button>
   <script>
     // Translations
     const translations = {
@@ -246,6 +281,37 @@
       });
     });
 
+    // Smooth scrolling
+    document.querySelectorAll('nav a').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const sectionId = link.dataset.section;
+        document.getElementById(sectionId).scrollIntoView({ behavior: 'smooth' });
+        showSection(sectionId);
+      });
+    });
+
+    // Highlight active section on scroll
+    window.addEventListener('scroll', () => {
+      const sections = document.querySelectorAll('.section');
+      const navLinks = document.querySelectorAll('nav a');
+      let currentSection = '';
+
+      sections.forEach(section => {
+        const sectionTop = section.offsetTop - 100;
+        if (window.scrollY >= sectionTop) {
+          currentSection = section.id;
+        }
+      });
+
+      navLinks.forEach(link => {
+        link.classList.remove('active');
+        if (link.dataset.section === currentSection) {
+          link.classList.add('active');
+        }
+      });
+    });
+
     // Chat functionality
     const presetMessages = [
       "I'm feeling stressed, any tips?",
@@ -265,6 +331,7 @@
         localStorage.setItem('messages', JSON.stringify(messages));
         displayMessages();
         input.value = '';
+        showNotification('Message sent!');
       }
     }
     displayMessages();
@@ -287,12 +354,13 @@
       }
       localStorage.setItem('streak', streak);
       moodCountDisplay.textContent = `Moods logged: ${moodData.length}`;
-      streakDisplay.textContent = `Streak: ${streak} day${streak === 1 ? '' : 's'}`;
+      streakDisplay.textContent = `Streak: ${streak} days`;
       progressBar.style.width = `${Math.min(moodData.length * 20, 100)}%`;
       updateMoodChart();
+      showNotification('Mood logged successfully!');
     }
     moodCountDisplay.textContent = `Moods logged: ${moodData.length}`;
-    streakDisplay.textContent = `Streak: ${streak} day${streak === 1 ? '' : 's'}`;
+    streakDisplay.textContent = `Streak: ${streak} days`;
     progressBar.style.width = `${Math.min(moodData.length * 20, 100)}%`;
 
     // Mood chart
@@ -300,14 +368,25 @@
     const moodChart = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: ['Happy', 'Sad', 'Stressed'],
+        labels: ['😊 Happy', '😢 Sad', '😣 Stressed'],
         datasets: [{
           label: 'Mood Trends',
           data: [0, 0, 0],
           backgroundColor: ['#6b48ff', '#ff6b6b', '#ffca28']
         }]
       },
-      options: { scales: { y: { beginAtZero: true } } }
+      options: {
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: (context) => `${context.dataset.label}: ${context.raw}`
+            }
+          }
+        },
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
     });
     function updateMoodChart() {
       const counts = { '😊': 0, '😢': 0, '😣': 0 };
@@ -336,10 +415,18 @@
         const userMsg = input.value.toLowerCase();
         const botMsg = userMsg.includes('stress') ? chatbotResponses.stress :
                        userMsg.includes('sad') ? chatbotResponses.sad : chatbotResponses.default;
-        chatbotMessages.push({ user: input.value, bot: botMsg });
-        localStorage.setItem('chatbotMessages', JSON.stringify(chatbotMessages));
+
+        chatbotMessages.push({ user: input.value, bot: '...' });
         displayChatbotMessages();
+
+        setTimeout(() => {
+          chatbotMessages[chatbotMessages.length - 1].bot = botMsg;
+          localStorage.setItem('chatbotMessages', JSON.stringify(chatbotMessages));
+          displayChatbotMessages();
+        }, 1000); // Simulate typing delay
+
         input.value = '';
+        showNotification('Message sent to chatbot!');
       }
     }
     function toggleChatbot() {
@@ -347,10 +434,42 @@
     }
     displayChatbotMessages();
 
+    // Notification
+    function showNotification(message) {
+      const notification = document.createElement('div');
+      notification.textContent = message;
+      notification.style.position = 'fixed';
+      notification.style.bottom = '20px';
+      notification.style.right = '20px';
+      notification.style.background = '#6b48ff';
+      notification.style.color = 'white';
+      notification.style.padding = '10px 20px';
+      notification.style.borderRadius = '5px';
+      notification.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.2)';
+      notification.style.zIndex = '1000';
+      document.body.appendChild(notification);
+
+      setTimeout(() => {
+        notification.remove();
+      }, 3000);
+    }
+
     // Service Worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').catch(err => console.log('Service Worker Error:', err));
     }
+
+    // Dark Mode
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark-mode');
+      localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      if (localStorage.getItem('darkMode') === 'true') {
+        document.body.classList.add('dark-mode');
+      }
+    });
   </script>
 </body>
 </html>
